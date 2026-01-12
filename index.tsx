@@ -13,7 +13,7 @@ async function prepare() {
       onUnhandledRequest: 'bypass',
       serviceWorker: {
         // Point to the root location of the worker script
-        url: './mockServiceWorker.js'
+        url: '/mockServiceWorker.js'
       }
     });
     console.log('[MSW] Mocking enabled.');

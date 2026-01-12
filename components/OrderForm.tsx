@@ -27,7 +27,7 @@ interface FormValues {
   selectedIngredientIds: string[];
   
   // Virtual field for category-specific errors
-  customErrors: Record<string, string>;
+  customErrors: Partial<Record<IngredientCategory, string>>;
   
   // Extras & Notes
   selectedExtraIds: string[];
@@ -127,7 +127,11 @@ export const OrderForm: React.FC = () => {
 
   const onSubmit = (data: FormValues) => {
     // Custom validation for ingredient categories if a CUSTOM sandwich is involved
-    const needsCustomValidation = data.sandwichConfig.includes('CUSTOM') || data.sandwichConfig === 'MIXED';
+    const needsCustomValidation = 
+      data.sandwichConfig === 'CUSTOM' || 
+      data.sandwichConfig === '2_CUSTOM' || 
+      data.sandwichConfig === 'MIXED';
+
     if (needsCustomValidation) {
       if (!validateCustomSandwich(data.selectedIngredientIds)) {
         return;

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
@@ -36,6 +35,7 @@ export const Layout: React.FC = () => {
             <a href="#" className="hover:text-primary transition-colors">Support</a>
             <a href="#" className="hover:text-primary transition-colors">Privacy</a>
             <a href="#" className="hover:text-primary transition-colors">Terms</a>
+            <Link to="/admin/login" className="hover:text-primary transition-colors font-medium">Admin Panel</Link>
           </div>
         </div>
       </footer>
