@@ -26,6 +26,9 @@ interface FormValues {
   selectedSpecialId: string;
   selectedIngredientIds: string[];
   
+  // Virtual field for category-specific errors
+  customErrors: Record<string, string>;
+  
   // Extras & Notes
   selectedExtraIds: string[];
   notes: string;
@@ -34,7 +37,6 @@ interface FormValues {
 export const OrderForm: React.FC = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
 
-  // Added watch to the destructuring to fix the "Cannot find name 'watch'" error.
   const { 
     register, 
     handleSubmit, 
@@ -53,6 +55,7 @@ export const OrderForm: React.FC = () => {
       selectedIngredientIds: [],
       selectedExtraIds: [],
       notes: '',
+      customErrors: {}
     }
   });
 
@@ -93,9 +96,11 @@ export const OrderForm: React.FC = () => {
   const validateCustomSandwich = (ids: string[]) => {
     if (!ingredients) return true;
     
+    // Clear previous category errors
+    clearErrors('customErrors');
+    
     let isValid = true;
     const selectedIngredients = ingredients.filter(i => ids.includes(i.id));
-    
     const categories = Object.keys(CUSTOM_SANDWICH_RULES) as IngredientCategory[];
     
     for (const cat of categories) {
@@ -103,13 +108,13 @@ export const OrderForm: React.FC = () => {
       const count = selectedIngredients.filter(i => i.category === cat).length;
       
       if (count < rule.min) {
-        setError(`selectedIngredientIds` as any, { 
+        setError(`customErrors.${cat}`, { 
           type: 'manual', 
-          message: `${rule.label}: at least ${rule.min} required` 
+          message: `${rule.label}: required at least ${rule.min}` 
         });
         isValid = false;
       } else if (count > rule.max) {
-        setError(`selectedIngredientIds` as any, { 
+        setError(`customErrors.${cat}`, { 
           type: 'manual', 
           message: `${rule.label}: maximum ${rule.max} allowed` 
         });
@@ -117,7 +122,6 @@ export const OrderForm: React.FC = () => {
       }
     }
     
-    if (isValid) clearErrors('selectedIngredientIds');
     return isValid;
   };
 
@@ -296,6 +300,7 @@ export const OrderForm: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setValue('sandwichCount', item.val as '1' | '2');
+                  // Set default config based on count
                   setValue('sandwichConfig', item.val === '1' ? 'SPECIAL' : '2_SPECIAL');
                 }}
                 className={`flex-1 py-4 px-6 rounded-xl border-2 font-bold transition-all text-center ${
@@ -311,31 +316,53 @@ export const OrderForm: React.FC = () => {
         </div>
 
         {/* Combination Selection */}
-        {sandwichCount === '2' && (
-          <div className="space-y-4 mb-8 animate-in fade-in slide-in-from-top-2">
-            <label className="text-sm font-bold text-neutral-700 block">Выберите комбинацию:</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { val: '2_SPECIAL', label: '2 SPECIAL' },
-                { val: '2_CUSTOM', label: '2 CUSTOM' },
-                { val: 'MIXED', label: '1 SPECIAL + 1 CUSTOM' }
-              ].map(item => (
-                <button
-                  key={item.val}
-                  type="button"
-                  onClick={() => setValue('sandwichConfig', item.val as any)}
-                  className={`py-3 px-4 rounded-lg border-2 text-sm font-bold transition-all ${
-                    sandwichConfig === item.val 
-                    ? 'border-primary bg-primary text-black' 
-                    : 'border-neutral-100 bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+        <div className="space-y-4 mb-8 animate-in fade-in slide-in-from-top-2">
+          <label className="text-sm font-bold text-neutral-700 block">Выберите тип:</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {sandwichCount === '1' ? (
+              <>
+                {[
+                  { val: 'SPECIAL', label: '1 SPECIAL' },
+                  { val: 'CUSTOM', label: '1 CUSTOM' }
+                ].map(item => (
+                  <button
+                    key={item.val}
+                    type="button"
+                    onClick={() => setValue('sandwichConfig', item.val as any)}
+                    className={`py-3 px-4 rounded-lg border-2 text-sm font-bold transition-all ${
+                      sandwichConfig === item.val 
+                      ? 'border-primary bg-primary text-black' 
+                      : 'border-neutral-100 bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                {[
+                  { val: '2_SPECIAL', label: '2 SPECIAL' },
+                  { val: '2_CUSTOM', label: '2 CUSTOM' },
+                  { val: 'MIXED', label: '1 SPECIAL + 1 CUSTOM' }
+                ].map(item => (
+                  <button
+                    key={item.val}
+                    type="button"
+                    onClick={() => setValue('sandwichConfig', item.val as any)}
+                    className={`py-3 px-4 rounded-lg border-2 text-sm font-bold transition-all ${
+                      sandwichConfig === item.val 
+                      ? 'border-primary bg-primary text-black' 
+                      : 'border-neutral-100 bg-neutral-50 text-neutral-500 hover:bg-neutral-100'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="space-y-6">
           {/* SPECIAL BLOCK */}
@@ -343,13 +370,13 @@ export const OrderForm: React.FC = () => {
             <div className="p-6 bg-white border border-neutral-200 rounded-2xl space-y-4 animate-in fade-in zoom-in-95 shadow-sm">
               <div className="flex justify-between items-center border-b border-neutral-100 pb-2">
                 <span className="text-xs font-extrabold uppercase tracking-widest text-primary">Special Recipe</span>
-                {sandwichConfig === '2_SPECIAL' && <span className="text-[10px] bg-neutral-100 px-2 py-0.5 rounded-full font-bold">x2 quantity</span>}
+                {(sandwichConfig === '2_SPECIAL') && <span className="text-[10px] bg-neutral-100 px-2 py-0.5 rounded-full font-bold">x2 quantity</span>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-neutral-700">Выберите рецепт</label>
                 <select
                   {...register('selectedSpecialId', { 
-                    required: (sandwichConfig.includes('SPECIAL') || sandwichConfig === 'MIXED') ? 'Выберите сэндвич' : false 
+                    required: (sandwichConfig === 'SPECIAL' || sandwichConfig === '2_SPECIAL' || sandwichConfig === 'MIXED') ? 'Выберите сэндвич' : false 
                   })}
                   className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
                 >
@@ -368,7 +395,7 @@ export const OrderForm: React.FC = () => {
             <div className="p-6 bg-white border border-neutral-200 rounded-2xl space-y-6 animate-in fade-in zoom-in-95 shadow-sm">
               <div className="flex justify-between items-center border-b border-neutral-100 pb-2">
                 <span className="text-xs font-extrabold uppercase tracking-widest text-primary">Custom Builder</span>
-                {sandwichConfig === '2_CUSTOM' && <span className="text-[10px] bg-neutral-100 px-2 py-0.5 rounded-full font-bold">x2 quantity</span>}
+                {(sandwichConfig === '2_CUSTOM') && <span className="text-[10px] bg-neutral-100 px-2 py-0.5 rounded-full font-bold">x2 quantity</span>}
               </div>
               
               {ingredients && (
@@ -380,11 +407,6 @@ export const OrderForm: React.FC = () => {
                   errors={errors}
                   fieldName="selectedIngredientIds"
                 />
-              )}
-              {errors.selectedIngredientIds && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-sm text-red-600 font-bold">{errors.selectedIngredientIds.message as string}</p>
-                </div>
               )}
             </div>
           )}

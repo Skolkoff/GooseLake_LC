@@ -1,5 +1,5 @@
 {
   "name": "Goose Lake MVP",
-  "description": "A food ordering service skeleton with MSW, React Query, and Tailwind CSS. Features status tracking and service configuration.",
+  "description": "A food ordering service skeleton built with React, MSW, React Query, and standard Tailwind CSS. Strictly no external UI libraries.",
   "requestFramePermissions": []
 }

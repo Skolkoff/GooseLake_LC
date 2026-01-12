@@ -10,15 +10,15 @@ interface CustomSandwichBuilderProps {
   watch: UseFormWatch<any>;
   setValue: UseFormSetValue<any>;
   errors: FieldErrors<any>;
-  fieldName: string; // e.g. "selectedIngredientIds"
+  fieldName: string;
 }
 
 export const CustomSandwichBuilder: React.FC<CustomSandwichBuilderProps> = ({
   ingredients,
   register,
   watch,
-  errors,
-  fieldName
+  fieldName,
+  errors
 }) => {
   const selectedIds: string[] = watch(fieldName) || [];
 
@@ -33,31 +33,36 @@ export const CustomSandwichBuilder: React.FC<CustomSandwichBuilderProps> = ({
   const categories = Object.keys(CUSTOM_SANDWICH_RULES) as IngredientCategory[];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8">
       {categories.map((catKey) => {
         const rule = CUSTOM_SANDWICH_RULES[catKey];
         const catIngredients = groupedIngredients[catKey] || [];
-        
-        // Calculate currently selected count for this specific category
         const selectedInCategory = catIngredients.filter(ing => selectedIds.includes(ing.id));
         const currentCount = selectedInCategory.length;
         const isMaxReached = currentCount >= rule.max;
+        
+        // Extract specific error for this category if it exists
+        const categoryError = errors.customErrors?.[catKey]?.message as string | undefined;
 
         return (
           <div key={catKey} className="space-y-3">
             <div className="flex justify-between items-end border-b border-neutral-100 pb-2">
               <div>
-                <h4 className="text-sm font-bold text-neutral-900 uppercase tracking-widest">{rule.label}</h4>
-                <p className="text-xs text-neutral-400">
+                <h4 className={`text-sm font-bold uppercase tracking-widest ${categoryError ? 'text-red-600' : 'text-neutral-900'}`}>
+                  {rule.label}
+                </h4>
+                <p className="text-[11px] text-neutral-400 font-medium">
                   {rule.min === rule.max 
-                    ? `Pick exactly ${rule.max}` 
-                    : `Choose ${rule.min} to ${rule.max}`}
+                    ? `Требуется ровно ${rule.max}` 
+                    : `От ${rule.min} до ${rule.max}`}
                 </p>
               </div>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full transition-colors ${
-                currentCount > rule.max || currentCount < rule.min 
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                categoryError 
                   ? 'bg-red-100 text-red-600' 
-                  : currentCount === rule.max ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'
+                  : currentCount > rule.max || currentCount < rule.min 
+                    ? 'bg-neutral-100 text-neutral-500' // Default state before validation
+                    : 'bg-green-50 text-green-700'
               }`}>
                 {currentCount} / {rule.max}
               </span>
@@ -71,37 +76,33 @@ export const CustomSandwichBuilder: React.FC<CustomSandwichBuilderProps> = ({
                 return (
                   <label 
                     key={ing.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                       isSelected 
-                        ? 'bg-primary/10 border-primary text-neutral-900 shadow-sm' 
+                        ? 'bg-primary/10 border-primary text-neutral-900' 
                         : isDisabled 
                           ? 'opacity-40 bg-neutral-50 border-neutral-100 cursor-not-allowed'
-                          : 'bg-white border-neutral-200 hover:border-neutral-300'
+                          : categoryError
+                            ? 'bg-red-50 border-red-200'
+                            : 'bg-white border-neutral-200 hover:border-neutral-300'
                     }`}
                   >
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        value={ing.id}
-                        disabled={isDisabled}
-                        {...register(fieldName, {
-                           validate: (value: string[]) => {
-                             // This internal validation handles the logic per category if needed, 
-                             // but we usually rely on the main form validation.
-                             return true;
-                           }
-                        })}
-                        className="w-5 h-5 accent-primary border-neutral-300 rounded focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
-                      />
-                    </div>
+                    <input
+                      type="checkbox"
+                      value={ing.id}
+                      disabled={isDisabled}
+                      {...register(fieldName)}
+                      className="w-5 h-5 rounded border-neutral-300 text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed accent-primary"
+                    />
                     <span className="text-sm font-semibold">{ing.name}</span>
                   </label>
                 );
               })}
             </div>
-            {/* Display category specific errors if they were passed down */}
-            {errors[catKey] && (
-               <p className="text-xs text-red-500 font-bold">{errors[catKey]?.message as string}</p>
+            
+            {categoryError && (
+              <div className="text-xs font-bold text-red-600 animate-in fade-in slide-in-from-top-1">
+                {categoryError}
+              </div>
             )}
           </div>
         );
